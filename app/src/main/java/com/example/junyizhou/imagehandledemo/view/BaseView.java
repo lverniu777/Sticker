@@ -101,36 +101,6 @@ public abstract class BaseView extends View {
         return (float) Math.toDegrees(radians);
     }
 
-    public void CreatNewPhoto(String filePath, List<ImageGroup> imageGroupList) {
-        Bitmap bitmap = Bitmap.createBitmap(getWidth(), getHeight(),
-                Bitmap.Config.ARGB_8888); // 背景图片
-        Canvas canvas = new Canvas(bitmap); // 新建画布
-        canvas.drawColor(Color.WHITE);
-
-        if (mCropImageGroup.bitmap != null && mCropImageGroup.matrix != null) {
-            canvas.drawBitmap(mCropImageGroup.bitmap, mCropImageGroup.matrix, mPaintForBitmap);
-        }
-
-        for (ImageGroup imageGroup : imageGroupList) {
-            canvas.drawBitmap(imageGroup.bitmap, imageGroup.matrix, mPaintForBitmap);
-        }
-
-        canvas.save(Canvas.ALL_SAVE_FLAG); // 保存画布
-        canvas.restore();
-
-        Bitmap resultBitmap = Bitmap.createBitmap(bitmap, (int) targetRect.left, (int) targetRect.top, getWidth(), getWidth(), null, false);
-        bitmap.recycle();
-
-        File f = new File(filePath);
-
-        try {
-            resultBitmap.compress(Bitmap.CompressFormat.JPEG, 85, new FileOutputStream(f));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        resultBitmap.recycle();
-    }
-
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
@@ -218,7 +188,6 @@ public abstract class BaseView extends View {
 
         public void release() {
             if (bitmap != null) {
-                bitmap.recycle();
                 bitmap = null;
             }
 

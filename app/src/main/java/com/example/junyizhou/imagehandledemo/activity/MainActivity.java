@@ -3,12 +3,16 @@ package com.example.junyizhou.imagehandledemo.activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,11 +22,20 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.Request;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.CustomViewTarget;
+import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.target.SizeReadyCallback;
+import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.request.target.ViewTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.example.junyizhou.imagehandledemo.R;
 import com.example.junyizhou.imagehandledemo.view.CropView;
 import com.example.junyizhou.imagehandledemo.view.DecalView;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -81,13 +94,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == MediaPickerActivity.REQUEST_MEDIA_PICKER_ACTIVITY && resultCode == RESULT_OK) {
-            ImageLoader.getInstance().loadImage(data.getStringExtra(MediaPickerActivity.MEDIA_URI), new SimpleImageLoadingListener() {
-                @Override
-                public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
-                    // Do whatever you want with Bitmap
-                    mCropView.setBackgroundBitmap(loadedImage);
-                }
-            });
+            Glide.with(MainActivity.this)
+                    .asBitmap()
+                    .load(data.getStringExtra(MediaPickerActivity.MEDIA_URI))
+                    .into(new CustomViewTarget<View, Bitmap>(mCropView) {
+                        @Override
+                        public void onLoadFailed(@Nullable Drawable errorDrawable) {
+
+                        }
+
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            mCropView.setBackgroundBitmap(resource);
+                        }
+
+                        @Override
+                        protected void onResourceCleared(@Nullable Drawable placeholder) {
+
+                        }
+                    });
         }
     }
 
@@ -170,9 +195,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         @Override
-        public void onBindViewHolder(MyViewHolder holder, int position) {
+        public void onBindViewHolder(final MyViewHolder holder, int position) {
             holder.tv_des.setText(desList[position]);
-            ImageLoader.getInstance().displayImage(decalList[position], holder.iv_decal);
+            final String url = decalList[position];
+            Glide.with(MainActivity.this)
+                    .asBitmap()
+                    .load(url)
+                    .addListener(new RequestListener<Bitmap>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                            Log.e("Glide", "onLoadFailed: exception" + e);
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                            return false;
+                        }
+                    })
+                    .into(new CustomViewTarget<View, Bitmap>(holder.iv_decal) {
+
+                        @Override
+                        public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                            Log.e("Glide", "onLoadFailed: ");
+                        }
+
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            Log.e("Glide", "onResourceReady");
+                            holder.iv_decal.setImageBitmap(resource);
+                        }
+
+                        @Override
+                        protected void onResourceCleared(@Nullable Drawable placeholder) {
+                            Log.e("Glide", "onResourceCleared: ");
+                        }
+                    })
+            ;
         }
 
         @Override
@@ -195,13 +254,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         public void onClick(View v) {
-            ImageLoader.getInstance().loadImage(decalList[getPosition()], new SimpleImageLoadingListener() {
-                @Override
-                public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
-                    // Do whatever you want with Bitmap
-                    mDecalView.addDecal(loadedImage);
-                }
-            });
+            Glide.with(MainActivity.this)
+                    .asBitmap()
+                    .load(decalList[getAdapterPosition()])
+                    .into(new CustomViewTarget<View, Bitmap>(mDecalView) {
+                        @Override
+                        public void onLoadFailed(@Nullable Drawable errorDrawable) {
+
+                        }
+
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            mDecalView.addDecal(resource);
+                        }
+
+                        @Override
+                        protected void onResourceCleared(@Nullable Drawable placeholder) {
+
+                        }
+                    });
         }
 
     }
