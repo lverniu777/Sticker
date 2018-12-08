@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 
 import com.example.junyizhou.imagehandledemo.R;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class StickerView extends BaseView {
+    private static final String TAG = StickerView.class.getSimpleName();
 
     /**
      * 添加进来的贴纸容器
@@ -55,8 +57,8 @@ public class StickerView extends BaseView {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        //后添加的先画，保证层级的正确性
-        for (int i = mStickerList.size() - 1; i >= 0; i--) {
+        //保证层级的正确性，后加入的贴纸应该层级最高，因此它要最后画
+        for (int i = 0; i < mStickerList.size(); i++) {
             final Sticker sticker = mStickerList.get(i);
             if (sticker == null) {
                 continue;
@@ -111,13 +113,36 @@ public class StickerView extends BaseView {
             case MotionEvent.ACTION_DOWN:
                 anchorX = event.getX();
                 anchorY = event.getY();
-                updateFocusedStickerIndex(stickerCheck(anchorX, anchorY));
-                mCurrentDeleteIndex = deleteCheck(anchorX, anchorY);
-                if (mCurrentStickerIndex != -1 && mCurrentDeleteIndex == -1) {
-                    downMatrix.set(mStickerList.get(mCurrentStickerIndex).matrix);
+                final int focusStickerIndex = stickerCheck(anchorX, anchorY);
+                final int deleteStickerIndex = deleteCheck(anchorX, anchorY);
+                Log.e(TAG, "onTouchEvent: ACTION_DOWN" +
+                        " focusStickerIndex: " + focusStickerIndex +
+                        " deleteStickerIndex " + deleteStickerIndex +
+                        " last index of sticker list " + (mStickerList.size() - 1)
+                );
+                //点击的是贴纸部分而不是删除圆圈
+                if (focusStickerIndex != -1 && deleteStickerIndex == -1) {
+                    //调整层级，将当前点击的贴纸调整至层级最上层，即索引是贴纸集合中最后一个
+                    final Sticker currentFocusSticker = mStickerList.remove(focusStickerIndex);
+                    if (currentFocusSticker == null) {
+                        return true;
+                    }
+                    downMatrix.set(currentFocusSticker.matrix);
+                    mStickerList.add(currentFocusSticker);
+                    updateFocusedStickerIndex(mStickerList.size() - 1);
                     mode = DRAG;
                     invalidate();
                 }
+                //点击的是贴纸和删除按钮之外的区域
+                else if (focusStickerIndex == -1 && deleteStickerIndex == -1) {
+                    //清除掉当前获得焦点的贴纸状态
+                    updateFocusedStickerIndex(-1);
+                    invalidate();
+                }
+
+                //由于每次在ACTION_UP中都要判断当前的删除索引，因此需要每次在ACTION_DOWN中都要
+                //更新当前删除的索引值
+                updateDeleteStickerIndex(deleteStickerIndex);
                 break;
 
             case MotionEvent.ACTION_POINTER_DOWN:
@@ -149,6 +174,9 @@ public class StickerView extends BaseView {
                     sticker.matrix.set(moveMatrix);
                     invalidate();
                 } else if (mode == DRAG) {
+                    Log.e(TAG, "onTouchEvent: ACTION_MOVE DRAG" +
+                            " last index of sticker list " + (mStickerList.size() - 1)
+                    );
                     moveMatrix.set(downMatrix);
                     //进行平移操作
                     moveMatrix.postTranslate(event.getX() - anchorX, event.getY() - anchorY);
@@ -158,12 +186,20 @@ public class StickerView extends BaseView {
                 break;
 
             case MotionEvent.ACTION_UP:
+                Log.e(TAG, "onTouchEvent: ACTION_UP " +
+                        " delete index: " + mCurrentDeleteIndex
+                );
                 if (mCurrentDeleteIndex <= -1 || mCurrentDeleteIndex >= mStickerList.size()) {
                     return true;
                 }
                 final Sticker stickerToBeRemoved;
                 if ((stickerToBeRemoved = mStickerList.remove(mCurrentDeleteIndex)) != null) {
                     stickerToBeRemoved.release();
+                    //主动点击删除按钮，删掉了当前获得焦点的贴纸。那么寻找在它之后的层级最高的贴纸
+                    //让它获得焦点
+                    if (mStickerList.size() > 0) {
+                        updateFocusedStickerIndex(mStickerList.size() - 1);
+                    }
                 }
                 invalidate();
                 mode = NONE;
@@ -175,6 +211,7 @@ public class StickerView extends BaseView {
         }
         return true;
     }
+
 
     /**
      * 判断点击区域是否在指定贴纸中
@@ -263,5 +300,9 @@ public class StickerView extends BaseView {
 
     private void updateFocusedStickerIndex(int i) {
         mCurrentStickerIndex = i;
+    }
+
+    private void updateDeleteStickerIndex(int deleteStickerIndex) {
+        mCurrentDeleteIndex = deleteStickerIndex;
     }
 }
