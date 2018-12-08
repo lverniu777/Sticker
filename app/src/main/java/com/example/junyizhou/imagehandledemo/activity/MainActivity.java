@@ -260,7 +260,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                         @Override
                         public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                            mDecalView.addDecal(resource);
+                            mDecalView.addSticker(resource);
                         }
 
                         @Override

@@ -176,18 +176,26 @@ public class StickerView extends BaseView {
         return true;
     }
 
-    private boolean pointCheck(Sticker imageGroup, float x, float y) {
-        float[] points = getBitmapPoints(imageGroup);
-        float x1 = points[0];
-        float y1 = points[1];
-        float x2 = points[2];
-        float y2 = points[3];
-        float x3 = points[4];
-        float y3 = points[5];
-        float x4 = points[6];
-        float y4 = points[7];
+    /**
+     * 判断点击区域是否在指定贴纸中
+     *
+     * @param sticker
+     * @param x
+     * @param y
+     * @return
+     */
+    private boolean pointCheck(Sticker sticker, float x, float y) {
+        final float[] points = getBitmapPoints(sticker);
+        final float x1 = points[0];
+        final float y1 = points[1];
+        final float x2 = points[2];
+        final float y2 = points[3];
+        final float x3 = points[4];
+        final float y3 = points[5];
+        final float x4 = points[6];
+        final float y4 = points[7];
 
-        float edge = (float) Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+        final float edge = (float) Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
         if ((2 + Math.sqrt(2)) * edge >= Math.sqrt(Math.pow(x - x1, 2) + Math.pow(y - y1, 2))
                 + Math.sqrt(Math.pow(x - x2, 2) + Math.pow(y - y2, 2))
                 + Math.sqrt(Math.pow(x - x3, 2) + Math.pow(y - y3, 2))
@@ -197,7 +205,7 @@ public class StickerView extends BaseView {
         return false;
     }
 
-    private boolean circleCheck(Sticker imageGroup, float x, float y) {
+    private boolean deleteButtonCheck(Sticker imageGroup, float x, float y) {
         float[] points = getBitmapPoints(imageGroup);
         float x2 = points[2];
         float y2 = points[3];
@@ -211,8 +219,10 @@ public class StickerView extends BaseView {
     }
 
     private int deleteCheck(float x, float y) {
-        for (int i = 0; i < mStickerList.size(); i++) {
-            if (circleCheck(mStickerList.get(i), x, y)) {
+        //可层级在上面的先来
+        for (int i = mStickerList.size() - 1; i >= 0; i--) {
+            final Sticker sticker = mStickerList.get(i);
+            if (deleteButtonCheck(sticker, x, y)) {
                 return i;
             }
         }
@@ -220,15 +230,17 @@ public class StickerView extends BaseView {
     }
 
     private int stickerCheck(float x, float y) {
-        for (int i = 0; i < mStickerList.size(); i++) {
-            if (pointCheck(mStickerList.get(i), x, y)) {
+        //可层级在上面的先来
+        for (int i = mStickerList.size() - 1; i >= 0; i--) {
+            final Sticker sticker = mStickerList.get(i);
+            if (pointCheck(sticker, x, y)) {
                 return i;
             }
         }
         return -1;
     }
 
-    public void addDecal(Bitmap bitmap) {
+    public void addSticker(Bitmap bitmap) {
         if (bitmap == null) {
             throw new NullPointerException("bitmap is null");
         }
