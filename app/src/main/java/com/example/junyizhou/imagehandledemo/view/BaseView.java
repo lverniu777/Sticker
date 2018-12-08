@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PointF;
@@ -12,11 +11,6 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.util.List;
 
 public abstract class BaseView extends View {
 
@@ -48,7 +42,7 @@ public abstract class BaseView extends View {
 
     protected OnSizeChangeListener mOnSizeChangedListener = null;
 
-    protected ImageGroup mCropImageGroup = new ImageGroup();
+    protected Sticker mCropImageGroup = new Sticker();
 
     protected final Paint mPaintForBitmap;
 
@@ -161,11 +155,18 @@ public abstract class BaseView extends View {
         invalidate();
     }
 
-    protected float[] getBitmapPoints(ImageGroup imageGroup) {
+    /**
+     * 获取贴纸的四个顶点坐标
+     *
+     * @param imageGroup
+     * @return
+     */
+    protected float[] getBitmapPoints(Sticker imageGroup) {
         return getBitmapPoints(imageGroup.bitmap, imageGroup.matrix);
     }
 
     protected float[] getBitmapPoints(Bitmap bitmap, Matrix matrix) {
+        //TODO 可以优化一下，减少创建数组次数
         float[] dst = new float[8];
         float[] src = new float[]{
                 0, 0,
@@ -182,9 +183,17 @@ public abstract class BaseView extends View {
         mOnSizeChangedListener = listener;
     }
 
-    public static class ImageGroup {
-        public Bitmap bitmap;
-        public Matrix matrix = new Matrix();
+    protected static class Sticker {
+        Bitmap bitmap;
+        Matrix matrix = new Matrix();
+
+        Sticker() {
+            this(null);
+        }
+
+        Sticker(Bitmap bitmap) {
+            this.bitmap = bitmap;
+        }
 
         public void release() {
             if (bitmap != null) {

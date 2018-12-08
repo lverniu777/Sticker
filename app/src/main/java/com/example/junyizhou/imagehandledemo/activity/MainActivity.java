@@ -1,6 +1,5 @@
 package com.example.junyizhou.imagehandledemo.activity;
 
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
@@ -25,24 +24,20 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
-import com.bumptech.glide.request.Request;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.CustomViewTarget;
-import com.bumptech.glide.request.target.SimpleTarget;
-import com.bumptech.glide.request.target.SizeReadyCallback;
 import com.bumptech.glide.request.target.Target;
-import com.bumptech.glide.request.target.ViewTarget;
 import com.bumptech.glide.request.transition.Transition;
 import com.example.junyizhou.imagehandledemo.R;
 import com.example.junyizhou.imagehandledemo.view.CropView;
-import com.example.junyizhou.imagehandledemo.view.DecalView;
+import com.example.junyizhou.imagehandledemo.view.StickerView;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private TextView mFuncCrop, mFuncDecal, mFuncFilter;
 
     private CropView mCropView;
-    private DecalView mDecalView;
+    private StickerView mDecalView;
 
     private Toolbar toolbar;
 
@@ -73,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setSupportActionBar(toolbar);
 
         mCropView = (CropView) findViewById(R.id.main_crop_view);
-        mDecalView = (DecalView) findViewById(R.id.main_decal_view);
+        mDecalView = (StickerView) findViewById(R.id.main_decal_view);
 
         initRecyclerView();
     }
