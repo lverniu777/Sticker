@@ -145,8 +145,8 @@ public class StickerView extends BaseView {
                         " deleteStickerIndex " + deleteStickerIndex +
                         " last index of sticker list " + (mStickerList.size() - 1)
                 );
-                //点击的是贴纸部分而不是删除圆圈
-                final boolean clickStickerBody = stickerBodyIndex != -1 && deleteStickerIndex == -1;
+                //点击的是贴纸部分即不是删除圆圈也不是缩放按钮
+                final boolean clickStickerBody = stickerBodyIndex != -1 && deleteStickerIndex == -1 && scaleStickerIndex == -1;
                 //点击的是右下角单指缩放的按钮
                 final boolean clickScaleBtn = scaleStickerIndex != -1;
                 if (clickStickerBody || clickScaleBtn) {
