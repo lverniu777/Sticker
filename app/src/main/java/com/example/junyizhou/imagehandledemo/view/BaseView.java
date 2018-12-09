@@ -8,9 +8,13 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.support.annotation.IntDef;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 public abstract class BaseView extends View {
 
@@ -18,11 +22,29 @@ public abstract class BaseView extends View {
         void onSizeChanged(int w, int h, int oldw, int oldh);
     }
 
-    protected static final int NONE = 0;
-    protected static final int DRAG = 1;
-    protected static final int ZOOM = 2;
+    @IntDef({ActionMode.NONE, ActionMode.DRAG, ActionMode.ZOOM_WITH_TWO_POINTER, ActionMode.ZOOM_WITH_ONE_POINTER})
+    @Retention(RetentionPolicy.SOURCE)
+    protected @interface ActionMode {
+        /**
+         * nothing to do
+         */
+        int NONE = 775;
+        /**
+         * 单指拖动
+         */
+        int DRAG = 715;
+        /**
+         * 两指缩放
+         */
+        int ZOOM_WITH_TWO_POINTER = 967;
+        /**
+         * 单指缩放
+         */
+        int ZOOM_WITH_ONE_POINTER = 866;
+    }
 
-    protected int mode = NONE;
+    @ActionMode
+    protected int mode = ActionMode.NONE;
 
     protected float anchorX = 0;
     protected float anchorY = 0;
@@ -71,9 +93,9 @@ public abstract class BaseView extends View {
     }
 
     // 触碰两点间距
-    public float getDistance(MotionEvent event) {
-        float x = event.getX(0) - event.getX(1);
-        float y = event.getY(0) - event.getY(1);
+    public float getDistanceBetweenTwoPoints(MotionEvent event) {
+        final float x = event.getX(0) - event.getX(1);
+        final float y = event.getY(0) - event.getY(1);
         return (float) Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
     }
 
@@ -89,9 +111,10 @@ public abstract class BaseView extends View {
 
     // 取旋转角
     public float getRotation(MotionEvent event) {
-        double x = event.getX(0) - event.getX(1);
-        double y = event.getY(0) - event.getY(1);
-        double radians = Math.atan2(y, x);
+        final double x = event.getX(0) - event.getX(1);
+        final double y = event.getY(0) - event.getY(1);
+        //atan2(double y,double x) 返回的是原点至点(x,y)的方位角，即与 x 轴的夹角。返回值的单位为弧度，取值范围为
+        final double radians = Math.atan2(y, x);
         return (float) Math.toDegrees(radians);
     }
 
@@ -165,10 +188,13 @@ public abstract class BaseView extends View {
         return getBitmapPoints(imageGroup.bitmap, imageGroup.matrix);
     }
 
+    /**
+     * 得到八个点坐标:按顺序依次是左上，右上，左下，右下
+     */
     protected float[] getBitmapPoints(Bitmap bitmap, Matrix matrix) {
         //TODO 可以优化一下，减少创建数组次数
-        float[] dst = new float[8];
-        float[] src = new float[]{
+        final float[] dst = new float[8];
+        final float[] src = new float[]{
                 0, 0,
                 bitmap.getWidth(), 0,
                 0, bitmap.getHeight(),

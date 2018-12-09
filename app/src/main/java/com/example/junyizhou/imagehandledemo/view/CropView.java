@@ -16,26 +16,26 @@ public class CropView extends BaseView {
                 anchorX = event.getX();
                 anchorY = event.getY();
                 downMatrix.set(mCropImageGroup.matrix);
-                mode = DRAG;
+                mode = ActionMode.DRAG;
                 break;
 
             case MotionEvent.ACTION_POINTER_DOWN:
                 downMatrix.set(mCropImageGroup.matrix);
-                mode = ZOOM;
-                oldDistance = getDistance(event);
+                mode = ActionMode.ZOOM_WITH_TWO_POINTER;
+                oldDistance = getDistanceBetweenTwoPoints(event);
                 midPoint = midPoint(event);
                 break;
 
             case MotionEvent.ACTION_MOVE:
-                if (mode == ZOOM) {
+                if (mode == ActionMode.ZOOM_WITH_TWO_POINTER) {
                     moveMatrix.set(downMatrix);
-                    float newDist = getDistance(event);
+                    float newDist = getDistanceBetweenTwoPoints(event);
                     float scale = newDist / oldDistance;
                     moveMatrix.postScale(scale, scale, midPoint.x, midPoint.y);// 縮放
                     mCropImageGroup.matrix.set(moveMatrix);
                     invalidate();
 
-                } else if (mode == DRAG) {
+                } else if (mode == ActionMode.DRAG) {
                     moveMatrix.set(downMatrix);
                     moveMatrix.postTranslate(event.getX() - anchorX, event.getY() - anchorY);// 平移
                     mCropImageGroup.matrix.set(moveMatrix);
@@ -47,11 +47,11 @@ public class CropView extends BaseView {
                 if (mCropImageGroup.bitmap != null) {
                     matrixFix();
                 }
-                mode = NONE;
+                mode = ActionMode.NONE;
                 break;
 
             case MotionEvent.ACTION_POINTER_UP:
-                mode = NONE;
+                mode = ActionMode.NONE;
                 break;
         }
         return true;
