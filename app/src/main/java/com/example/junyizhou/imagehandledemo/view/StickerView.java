@@ -19,6 +19,7 @@ import java.util.List;
 
 public class StickerView extends BaseView {
     private static final String TAG = StickerView.class.getSimpleName();
+    public static final int RADIUS = 40;
 
     /**
      * 添加进来的贴纸容器
@@ -35,6 +36,10 @@ public class StickerView extends BaseView {
         mPaintForLineAndCircle.setAlpha(170);
     }
 
+    /**
+     * 当前点击的翻转按钮索引
+     */
+    private int mCurrentFlipIndex;
     /**
      * 当前点击缩放按钮的索引
      */
@@ -55,18 +60,21 @@ public class StickerView extends BaseView {
      * 单指手动缩放Bitmap
      */
     private Bitmap mManualScaleIcon;
-
+    /**
+     * 翻转Bitmap小Icon
+     */
+    private Bitmap mFlipIcon;
 
     public StickerView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
         mDeleteIcon = BitmapFactory.decodeResource(getResources(), R.drawable.ic_close);
         mManualScaleIcon = BitmapFactory.decodeResource(getResources(), R.mipmap.sticker_ic_scale_white_18dp);
+        mFlipIcon = BitmapFactory.decodeResource(getResources(), R.mipmap.sticker_ic_flip_white_18dp);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
         //保证层级的正确性，后加入的贴纸应该层级最高，因此它要最后画
         for (int i = 0; i < mStickerList.size(); i++) {
             final Sticker sticker = mStickerList.get(i);
@@ -93,18 +101,43 @@ public class StickerView extends BaseView {
             drawBounds(canvas, x1, y1, x2, y2, x3, y3, x4, y4, isCurrentFocusSticker);
             drawDeleteBtn(canvas, x2, y2, isCurrentFocusSticker);
             drawScaleBtn(canvas, x4, y4, isCurrentFocusSticker);
+            drawFlipBtn(canvas, x1, y1, isCurrentFocusSticker);
             drawStickerBitmap(canvas, sticker);
         }
+    }
+
+    /**
+     * 画翻转按钮
+     *
+     * @param canvas
+     * @param x1
+     * @param y1
+     * @param hasFocused
+     */
+    private void drawFlipBtn(Canvas canvas, float x1, float y1, boolean hasFocused) {
+        if (!hasFocused) {
+            return;
+        }
+        canvas.drawCircle(x1, y1, RADIUS, mPaintForLineAndCircle);
+        canvas.drawBitmap(mFlipIcon, x1 - mFlipIcon.getWidth() / 2, y1 - mFlipIcon.getHeight() / 2, mPaintForLineAndCircle);
     }
 
     private void drawScaleBtn(Canvas canvas, float x4, float y4, boolean hasFocused) {
         if (!hasFocused) {
             return;
         }
-        canvas.drawCircle(x4, y4, 40, mPaintForLineAndCircle);
+        canvas.drawCircle(x4, y4, RADIUS, mPaintForLineAndCircle);
         canvas.drawBitmap(mManualScaleIcon,
                 x4 - mManualScaleIcon.getWidth() / 2, y4 - mManualScaleIcon.getHeight() / 2,
                 mPaintForBitmap);
+    }
+
+    private void drawDeleteBtn(Canvas canvas, float x2, float y2, boolean hasFocused) {
+        if (!hasFocused) {
+            return;
+        }
+        canvas.drawCircle(x2, y2, RADIUS, mPaintForLineAndCircle);
+        canvas.drawBitmap(mDeleteIcon, x2 - mDeleteIcon.getWidth() / 2, y2 - mDeleteIcon.getHeight() / 2, mPaintForBitmap);
     }
 
     private void drawBounds(Canvas canvas, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, boolean hasFocused) {
@@ -117,16 +150,8 @@ public class StickerView extends BaseView {
         canvas.drawLine(x3, y3, x1, y1, mPaintForLineAndCircle);
     }
 
-    private void drawDeleteBtn(Canvas canvas, float x2, float y2, boolean hasFocused) {
-        if (!hasFocused) {
-            return;
-        }
-        canvas.drawCircle(x2, y2, 40, mPaintForLineAndCircle);
-        canvas.drawBitmap(mDeleteIcon, x2 - mDeleteIcon.getWidth() / 2, y2 - mDeleteIcon.getHeight() / 2, mPaintForBitmap);
-    }
-
     private void drawStickerBitmap(Canvas canvas, Sticker sticker) {
-        canvas.drawBitmap(sticker.bitmap, sticker.matrix, mPaintForBitmap);
+        canvas.drawBitmap(sticker.bitmap, sticker.entireMatrix, mPaintForBitmap);
     }
 
     public boolean onTouchEvent(MotionEvent event) {
@@ -140,22 +165,49 @@ public class StickerView extends BaseView {
                 final int stickerBodyIndex = stickerBodyCheck(anchorX, anchorY);
                 final int deleteStickerIndex = deleteCheck(anchorX, anchorY);
                 final int scaleStickerIndex = scaleCheck(anchorX, anchorY);
+                final int flipStickerIndex = flipCheck(anchorX, anchorY);
                 Log.e(TAG, "onTouchEvent: ACTION_DOWN" +
+                        " flipStickerIndex " + flipStickerIndex +
                         " stickerBodyIndex: " + stickerBodyIndex +
                         " deleteStickerIndex " + deleteStickerIndex +
                         " last index of sticker list " + (mStickerList.size() - 1)
                 );
-                //点击的是贴纸部分即不是删除圆圈也不是缩放按钮
-                final boolean clickStickerBody = stickerBodyIndex != -1 && deleteStickerIndex == -1 && scaleStickerIndex == -1;
+                //点击的是贴纸部分即不是删除圆圈也不是缩放按钮也不是翻转按钮
+                final boolean clickStickerBody = stickerBodyIndex > -1 &&
+                        deleteStickerIndex == -1 &&
+                        scaleStickerIndex == -1 &&
+                        flipStickerIndex == -1;
                 //点击的是右下角单指缩放的按钮
-                final boolean clickScaleBtn = scaleStickerIndex != -1;
-                if (clickStickerBody || clickScaleBtn) {
+                final boolean clickScaleBtn = scaleStickerIndex > -1;
+                final boolean clickFlipBtn = flipStickerIndex > -1;
+                //点击翻转需要更新焦点贴纸并翻转贴纸
+                if (clickFlipBtn) {
+                    final Sticker currentFocusSticker = mStickerList.remove(flipStickerIndex);
+                    if (currentFocusSticker == null) {
+                        return true;
+                    }
+//                    Toast.makeText(getContext(), "Flip touched", Toast.LENGTH_SHORT).show();
+                    final float[] points = getBitmapPoints(currentFocusSticker);
+                    final float x1 = points[0];
+                    final float y1 = points[1];
+                    final float x4 = points[6];
+                    final float y4 = points[7];
+                    final float midX = (x1 + x4) / 2;
+                    final float midY = (y1 + y4) / 2;
+                    //-1,1指的是水平翻转
+                    //1,-1指的是垂直翻转
+                    currentFocusSticker.performFlip(-1, 1, midX, midY);
+                    mStickerList.add(currentFocusSticker);
+                    updateFocusedStickerIndex(mStickerList.size() - 1);
+                    mode = ActionMode.NONE;
+                    invalidate();
+                } else if (clickStickerBody || clickScaleBtn) {
                     //调整层级，将当前点击的贴纸调整至层级最上层，即索引是贴纸集合中最后一个
                     final Sticker currentFocusSticker = clickStickerBody ? mStickerList.remove(stickerBodyIndex) : mStickerList.remove(scaleStickerIndex);
                     if (currentFocusSticker == null) {
                         return true;
                     }
-                    downMatrix.set(currentFocusSticker.matrix);
+                    downMatrix.set(currentFocusSticker.entireMatrix);
                     mStickerList.add(currentFocusSticker);
                     updateFocusedStickerIndex(mStickerList.size() - 1);
                     mode = clickStickerBody ? ActionMode.DRAG : ActionMode.ZOOM_WITH_ONE_POINTER;
@@ -195,7 +247,7 @@ public class StickerView extends BaseView {
                 //找到第二个手指所点击的贴纸索引
                 final int secondPointIndex = stickerBodyCheck(secondPointerX, secondPointerY);
                 if (mCurrentStickerIndex != -1 && secondPointIndex == mCurrentStickerIndex && mCurrentDeleteIndex == -1) {
-                    downMatrix.set(mStickerList.get(mCurrentStickerIndex).matrix);
+                    downMatrix.set(mStickerList.get(mCurrentStickerIndex).entireMatrix);
                     mode = ActionMode.ZOOM_WITH_TWO_POINTER;
                 }
                 oldDistance = getDistanceBetweenTwoPoints(event);
@@ -218,7 +270,7 @@ public class StickerView extends BaseView {
                     moveMatrix.postScale(scale, scale, midPoint.x, midPoint.y);
                     //旋转
                     moveMatrix.postRotate(newRotation, midPoint.x, midPoint.y);
-                    sticker.matrix.set(moveMatrix);
+                    sticker.entireMatrix.set(moveMatrix);
                     invalidate();
                 }
                 //单指进行缩放
@@ -237,7 +289,7 @@ public class StickerView extends BaseView {
                     moveMatrix.postScale(scale, scale, midPoint.x, midPoint.y);
                     //旋转
                     moveMatrix.postRotate(newRotation, midPoint.x, midPoint.y);
-                    sticker.matrix.set(moveMatrix);
+                    sticker.entireMatrix.set(moveMatrix);
                     invalidate();
                 }
                 //单指进行拖动
@@ -248,7 +300,7 @@ public class StickerView extends BaseView {
                     moveMatrix.set(downMatrix);
                     //进行平移操作
                     moveMatrix.postTranslate(event.getX() - anchorX, event.getY() - anchorY);
-                    mStickerList.get(mCurrentStickerIndex).matrix.set(moveMatrix);
+                    mStickerList.get(mCurrentStickerIndex).entireMatrix.set(moveMatrix);
                     invalidate();
                 }
                 break;
@@ -310,14 +362,24 @@ public class StickerView extends BaseView {
         return false;
     }
 
+    private boolean flipButtonCheck(Sticker sticker, float anchorX, float anchorY) {
+        final float[] points = getBitmapPoints(sticker);
+        final float x1 = points[0];
+        final float y1 = points[1];
+        //两点之间距离小于半径
+        final int checkDis = (int) Math.sqrt(Math.pow(anchorX - x1, 2) + Math.pow(anchorY - y1, 2));
+        if (checkDis < RADIUS) {
+            return true;
+        }
+        return false;
+    }
+
     private boolean deleteButtonCheck(Sticker imageGroup, float x, float y) {
         float[] points = getBitmapPoints(imageGroup);
         float x2 = points[2];
         float y2 = points[3];
-
-        int checkDis = (int) Math.sqrt(Math.pow(x - x2, 2) + Math.pow(y - y2, 2));
-
-        if (checkDis < 40) {
+        final int checkDis = (int) Math.sqrt(Math.pow(x - x2, 2) + Math.pow(y - y2, 2));
+        if (checkDis < RADIUS) {
             return true;
         }
         return false;
@@ -350,6 +412,23 @@ public class StickerView extends BaseView {
         return -1;
     }
 
+    /**
+     * 检查是不是触摸了翻转按钮
+     *
+     * @param anchorX
+     * @param anchorY
+     * @return
+     */
+    private int flipCheck(float anchorX, float anchorY) {
+        //可层级在上面的先来
+        for (int i = mStickerList.size() - 1; i >= 0; i--) {
+            final Sticker sticker = mStickerList.get(i);
+            if (flipButtonCheck(sticker, anchorX, anchorY)) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
     private int deleteCheck(float x, float y) {
         //可层级在上面的先来
@@ -381,13 +460,14 @@ public class StickerView extends BaseView {
             throw new IllegalStateException("bitmap has bean recycled");
         }
         final Sticker imageGroupTemp = new Sticker(bitmap);
-        if (imageGroupTemp.matrix == null) {
-            imageGroupTemp.matrix = new Matrix();
+        if (imageGroupTemp.entireMatrix == null) {
+            imageGroupTemp.entireMatrix = new Matrix();
         }
         float transX = (getWidth() - imageGroupTemp.bitmap.getWidth()) / 2;
         float transY = (getHeight() - imageGroupTemp.bitmap.getHeight()) / 2;
-        imageGroupTemp.matrix.postTranslate(transX, transY);
-        imageGroupTemp.matrix.postScale(0.5f, 0.5f, getWidth() / 2, getHeight() / 2);
+        //TODO laofu 这里使用preTranslate的话移动速度没有postTranslate快，不知为什么。有待研究
+        imageGroupTemp.entireMatrix.postTranslate(transX, transY);
+        imageGroupTemp.entireMatrix.postScale(0.5f, 0.5f, getWidth() / 2, getHeight() / 2);
         mStickerList.add(imageGroupTemp);
         //最新添加的贴纸即为当前获得焦点的贴纸
         updateFocusedStickerIndex(mStickerList.size() - 1);

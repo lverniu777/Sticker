@@ -88,7 +88,7 @@ public abstract class BaseView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         if (mCropImageGroup.bitmap != null) {
-            canvas.drawBitmap(mCropImageGroup.bitmap, mCropImageGroup.matrix, mPaintForBitmap);
+            canvas.drawBitmap(mCropImageGroup.bitmap, mCropImageGroup.entireMatrix, mPaintForBitmap);
         }
     }
 
@@ -143,10 +143,10 @@ public abstract class BaseView extends View {
 
     public void setBackgroundBitmap(Bitmap bitmap) {
         mCropImageGroup.bitmap = bitmap;
-        if (mCropImageGroup.matrix == null) {
-            mCropImageGroup.matrix = new Matrix();
+        if (mCropImageGroup.entireMatrix == null) {
+            mCropImageGroup.entireMatrix = new Matrix();
         }
-        mCropImageGroup.matrix.reset();
+        mCropImageGroup.entireMatrix.reset();
 
         if (matrixBig != null && matrixSmall != null) {
             matrixBig.reset();
@@ -173,7 +173,7 @@ public abstract class BaseView extends View {
         }
         matrixSmall.postScale(scale, scale, getWidth() / 2, getHeight() / 2);
 
-        mCropImageGroup.matrix.set(matrixBig);
+        mCropImageGroup.entireMatrix.set(matrixBig);
 
         invalidate();
     }
@@ -185,7 +185,7 @@ public abstract class BaseView extends View {
      * @return
      */
     protected float[] getBitmapPoints(Sticker imageGroup) {
-        return getBitmapPoints(imageGroup.bitmap, imageGroup.matrix);
+        return getBitmapPoints(imageGroup.bitmap, imageGroup.entireMatrix);
     }
 
     /**
@@ -211,7 +211,14 @@ public abstract class BaseView extends View {
 
     protected static class Sticker {
         Bitmap bitmap;
-        Matrix matrix = new Matrix();
+        /**
+         * 用来控制整个贴纸的矩阵
+         */
+        Matrix entireMatrix = new Matrix();
+        /**
+         * 用来控制贴纸主体的矩阵
+         */
+        Matrix stickerBodyMatrix = new Matrix();
 
         Sticker() {
             this(null);
@@ -226,10 +233,25 @@ public abstract class BaseView extends View {
                 bitmap = null;
             }
 
-            if (matrix != null) {
-                matrix.reset();
-                matrix = null;
+            if (entireMatrix != null) {
+                entireMatrix.reset();
+                entireMatrix = null;
             }
+            if (stickerBodyMatrix != null) {
+                stickerBodyMatrix.reset();
+                ;
+                stickerBodyMatrix = null;
+            }
+
+        }
+
+        public void performFlip(int sx, int sy, float midX, float midY) {
+            entireMatrix.postScale(sx, sy, midX, midY);
+        }
+
+        public void updateMatrix(Matrix moveMatrix) {
+            entireMatrix.set(moveMatrix);
+            stickerBodyMatrix.set(moveMatrix);
         }
     }
 }
